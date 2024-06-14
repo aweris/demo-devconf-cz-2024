@@ -8,59 +8,46 @@ GOPATH          ?= $(shell go env GOPATH)
 # Set $(GOBIN) to project directory for keeping everything in one place
 GOBIN            = $(ROOT_DIR)/bin
 
-# All go files belong to project
-GOFILES          = $(shell find . -type f -name '*.go')
-
-# Commands used in Makefile
-GOCMD           := GOBIN=$(GOBIN) go
-GOBUILD         := $(GOCMD) build
-GOTEST          := $(GOCMD) test
-GOCLEAN         := $(GOCMD) clean
-
-GOLANGCILINT    := $(GOBIN)/golangci-lint
-
-MODULE          := $(shell $(GOCMD) list -m)
-VERSION         ?= 0.1.0+dev
-BUILD_TIMESTAMP := $(shell date -u +"%Y-%m-%dT%H:%M:%S%Z")
+# Dagger
+DAGGER 			:= $(GOBIN)/dagger
+DAGGER_VERSION  ?= v0.11.6
 
 # Build variables
-BUILD_LDFLAGS   := '-s -w -X main.version=$(VERSION) -X main.date=$(BUILD_TIMESTAMP)'
-
-# Versions
-GOLANGCILINT_VERSION ?= v1.57.2
+VERSION         ?= 0.1.0+dev
+PLATFORM        ?= $(shell go env GOOS)/$(shell go env GOARCH)
 
 # Helper variables
-V = 0
-Q = $(if $(filter 1,$V),,@)
-M = $(shell printf "\033[34;1m▶\033[0m")
+V  ?= 0
+Q   = $(if $(filter 1,$V),,@)
+M   = $(shell printf "\033[34;1m▶\033[0m")
+DBG = $(if $(filter 1,$V),--debug,)
 
 .PHONY: help
 default: help
 
 .PHONY: build
 build: ## Builds demo binary
-build: main.go $(wildcard *.go) $(wildcard */*.go) $(BUILD_DIR) ; $(info $(M) building binary)
-	$(Q) CGO_ENABLED=0 $(GOBUILD) -a -tags netgo -ldflags $(BUILD_LDFLAGS) -o $(BUILD_DIR)/app .
+build: $(BUILD_DIR) $(DAGGER) ; $(info $(M) building binary)
+	$(Q) $(DAGGER) $(DBG) call --source .:default build --platform $(PLATFORM) --version $(VERSION) file --path build/app -o $(BUILD_DIR)/app
 
 .PHONY: run
 run: ## Runs demo binary
-run: build ; $(info $(M) running binary)
-	$(Q) $(BUILD_DIR)/app
+run: $(DAGGER) ; $(info $(M) running binary)
+	$(Q) $(DAGGER) $(DBG) call --source .:default as-service up
 
 .PHONY: lint
 lint: ## Runs golangci-lint analysis
-lint: $(GOLANGCILINT) ; $(info $(M) runnig golangci-lint analysis)
-	$(Q) $(GOLANGCILINT) run
+lint: $(DAGGER) ; $(info $(M) runnig golangci-lint analysis)
+	$(Q) $(DAGGER) $(DBG) call --source .:default lint stdout
 
 .PHONY: test
 test: ## Runs go test
-test: ; $(info $(M) runnig tests)
-	$(Q) $(GOTEST) -race -cover -v ./...
+test: $(DAGGER) ; $(info $(M) runnig tests)
+	$(Q) $(DAGGER) $(DBG) call --source .:default test stdout
 
 .PHONY: clean
 clean: ## Cleanup everything
 clean: ; $(info $(M) cleaning )
-	$(Q) $(GOCLEAN)
 	$(Q) $(shell rm -rf $(GOBIN) $(BUILD_DIR))
 
 .PHONY: help
@@ -75,5 +62,5 @@ help: ## Shows this help message
 $(BUILD_DIR): ; $(info $(M) creating build directory)
 	$(Q) $(shell mkdir -p $@)
 
-$(GOLANGCILINT): ; $(info $(M) installing golangci-lint)
-	$(Q) curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) $(GOLANGCILINT_VERSION)
+$(DAGGER): ; $(info $(M) installing dagger $(DAGGER_VERSION))
+	$(Q) curl -L https://dl.dagger.io/dagger/install.sh | BIN_DIR=$(GOBIN) DAGGER_VERSION=$(DAGGER_VERSION) sh
