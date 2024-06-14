@@ -100,11 +100,12 @@ func (m *Ci) Lint(
 	// +default="v1.59.0"
 	linterVersion string,
 ) *Container {
-	return m.container().
-		WithMountedFile("/tmp/golangci-lint/install.sh", dag.HTTP("https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh")).
-		WithExec([]string{"chmod", "+x", "/tmp/golangci-lint/install.sh"}).
-		WithExec([]string{"/tmp/golangci-lint/install.sh", "-b", "/usr/local/bin", linterVersion}).
-		WithExec([]string{"golangci-lint", "run"})
+	var (
+		moduleOpts = GolangciLintOpts{Version: linterVersion, GoVersion: m.GoVersion}
+		runOpts    = GolangciLintRunOpts{Verbose: true}
+	)
+
+	return dag.GolangciLint(moduleOpts).Run(m.Source, runOpts)
 }
 
 // Runs the ci pipeline.

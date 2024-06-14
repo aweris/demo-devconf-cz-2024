@@ -2,6 +2,8 @@
 
 This repository contains the code for the demo presented in the talk "Rethinking CI/CD: A Leap Beyond Bash and YAML" at [DevConf.CZ 2024](https://www.devconf.info/cz/).
 
+Slides for the talk can be found [here](https://aweris.me/slides/2024-06-13-devconf-cz-rethinking-cicd/).
+
 ## Quick Start
 
 Just run the following command to build and run the demo:

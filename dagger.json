@@ -1,6 +1,12 @@
 {
   "name": "ci",
   "sdk": "go",
+  "dependencies": [
+    {
+      "name": "golangci-lint",
+      "source": "github.com/sagikazarmark/daggerverse/golangci-lint@4341f097b207ddcb180817a6a3fe974947a47490"
+    }
+  ],
   "source": "dagger",
   "engineVersion": "v0.11.6",
   "views": [
